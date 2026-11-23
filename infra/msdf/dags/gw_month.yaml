@@ -1,0 +1,13 @@
+order: gw_month
+nodes:
+  mails:     {service: gw, action: mails}
+  events:    {service: gw, action: events}
+  approvals: {service: gw, action: approvals}
+  digest:    {service: gw, action: digest}
+edges:
+  - {from: mails.mails,         to: digest.mails}
+  - {from: events.events,       to: digest.events}
+  - {from: approvals.approvals, to: digest.approvals}
+result: digest.digest
+deliveries:
+  - {requester: agent, on_success: agent.on_result, on_fail: agent.on_failed}

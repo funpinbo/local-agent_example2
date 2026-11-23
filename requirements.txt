@@ -1,0 +1,24 @@
+# 확인일 2026-11-16 (PyPI 최신)
+langgraph==1.2.22
+langchain==1.5.0
+langchain-core==1.8.1
+langchain-ollama==1.1.0
+docxtpl==0.20.2
+python-docx==1.2.0
+fastapi==0.163.1
+uvicorn==0.54.0
+httpx==0.28.1
+pytest==9.2.0
+
+# MSDF 0.6.0 (커밋 5c485b4, PyPI 없음)
+msdf[server] @ git+https://github.com/funpinbo/MSDF.git@v0.6.0
+python-multipart==0.0.33
+
+# 4편: PostgreSQL (확인일 2026-11-24)
+psycopg[binary]==3.3.9
+psycopg-pool==3.3.3
+
+# 4편 2장: MCP (확인일 2026-11-24)
+mcp==2.3.0
+mcp-server-time==2026.11.4
+pyyaml

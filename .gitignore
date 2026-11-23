@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------- 파이썬·노드
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+web/node_modules/
+web/dist/
+
+# ---------------------------------------------------------------- 비밀 — 절대 올리지 않는다
+# NOTION_TOKEN, GROUPWARE_MCP_KEY 등. 형식은 .env.example 참고
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------- 용량이 큰 것·실행 결과물
+# 모델 가중치·GGUF·llama.cpp (수~수십 GB). 만드는 법은 docs/serving.md
+models/*
+!models/.gitkeep
+# 비서가 만든 docx 등
+output/*
+!output/.gitkeep
+# MSDF 파일 저장소, 예전 SQLite 그룹웨어 DB (지금은 PostgreSQL)
+.msdf/
+**/.msdf/
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+# MSDF 웹 UI 빌드용 소스 (MSDF 0.6.0 frontend 복사본)
+vendor/
+# 챗봇에서 올린 문서
+common/sample_data/docs/_uploaded_files/
+common/sample_data/docs/uploads/
+
+# ---------------------------------------------------------------- 작업 노트 — 공개하지 않는다
+# 계획·진행 기록·인수인계·설계 대조 문서
+PLAN_*.md
+HANDOFF_*.md
+설계대조_*.md
+SERVING.md
+# 블로그 원고·실행 로그 (blog/logs에는 실제 프롬프트와 Notion 페이지 이름이 들어 있다)
+blog/
+
+# ---------------------------------------------------------------- 로컬 도구 설정
+.claude/
+.vscode/
+.idea/
+*.log

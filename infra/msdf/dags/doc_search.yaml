@@ -1,0 +1,15 @@
+order: doc_search
+nodes:
+  load:   {service: docs, action: load}
+  chunk:  {service: docs, action: chunk}
+  index:  {service: docs, action: index}
+  query:  {service: docs, action: query}
+  search: {service: docs, action: search}
+edges:
+  - {from: load.docs,    to: chunk.docs}
+  - {from: chunk.chunks, to: index.chunks}
+  - {from: index.index,  to: search.index}
+  - {from: query.query,  to: search.query}
+result: search.hits
+deliveries:
+  - {requester: agent, on_success: agent.on_result, on_fail: agent.on_failed}

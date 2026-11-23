@@ -1,0 +1,7 @@
+order: gw_people
+nodes:
+  people: {service: gw, action: people}
+edges: []
+result: people.people
+deliveries:
+  - {requester: agent, on_success: agent.on_result, on_fail: agent.on_failed}

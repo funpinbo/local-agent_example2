@@ -1,0 +1,7 @@
+order: doc_ingest
+nodes:
+  ingest: {service: docs, action: ingest}
+edges: []
+result: ingest.stored
+deliveries:
+  - {requester: agent, on_success: agent.on_result, on_fail: agent.on_failed}

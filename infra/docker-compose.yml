@@ -1,0 +1,37 @@
+# 4편 저장소: PostgreSQL + pgvector (5편 데이터 실습까지 같이 쓴다)
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   접속: 127.0.0.1:15432 (이 PC의 5432~5434는 다른 PostgreSQL들이 쓰고 있다)
+#   관리 화면(Adminer): http://127.0.0.1:8081  (서버 postgres, 계정 postgres / postgres)
+#
+# 실습용 로컬 계정이다. 비밀번호는 이 PC 안에서만 쓴다.
+name: local-agent
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: office
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d office"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  adminer:
+    image: adminer:5
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

@@ -1,0 +1,7 @@
+order: memo_text
+nodes:
+  memo: {service: docs, action: memo}
+edges: []
+result: memo.memo
+deliveries:
+  - {requester: agent, on_success: agent.on_result, on_fail: agent.on_failed}

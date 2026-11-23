@@ -1,0 +1,41 @@
+# 업무 비서가 붙는 MCP 서버 목록 (4편 2장).
+#
+# 값 안의 ${이름}은 환경 변수(또는 프로젝트 루트 .env)로 바꾼다. ${PYTHON}=지금 파이썬, ${ROOT}=프로젝트 폴더.
+# 필요한 환경 변수가 없으면 그 서버는 건너뛴다(패널 ⚙에 "설정 필요"로 보인다).
+#
+#   read_only: true  → 서버가 readOnlyHint를 달지 않은 도구는 붙이지 않는다(쓰기 도구는 3장에서 사람 승인과 함께)
+#   tools: [...]     → 읽기 도구 중에서도 이것만 붙인다(도구 수가 늘면 8B가 고르기 어려워진다, 3편 3-00)
+
+servers:
+  groupware:                                 # 3장: 직접 만든 서버 (python -m chat_ui.mcp_servers.groupware)
+    transport: http
+    url: http://127.0.0.1:8301/mcp
+    headers:
+      Authorization: "Bearer ${GROUPWARE_MCP_KEY}"     # 서비스 키 — 누가 부르나 (.env)
+    pass_user: true                          # 요청마다 _meta["local.office/user"] = 지금 사용자 — 누구 대신 부르나
+    # read_only를 두지 않는다: 쓰기 도구(메일·일정·결재)도 붙인다. 실행 전에 비서가 사람 승인을 받는다.
+
+  time:
+    transport: stdio
+    command: ${PYTHON}
+    args: ["-m", "mcp_server_time", "--local-timezone", "Asia/Seoul"]
+    read_only: true
+
+  filesystem:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem@2.3.0", "${ROOT}/output"]   # 비서가 만든 문서 폴더만 연다
+    read_only: true
+    tools: [list_directory, read_text_file, search_files, get_file_info]
+
+  notion:
+    transport: stdio
+    command: npx
+    args: ["-y", "@notionhq/notion-mcp-server@2.6.1"]
+    env:
+      NOTION_TOKEN: ${NOTION_TOKEN}          # Notion 내부 통합(integration) 토큰. .env에 넣는다
+    read_only: true
+    # 이 서버는 Notion HTTP API에서 자동으로 만든 도구 24개를 준다. HTTP POST면 readOnlyHint=false라서
+    # 검색(API-post-search)·데이터베이스 조회도 "쓰기"로 표시된다. 우리가 확인한 읽기 도구만 읽기로 본다.
+    verified_read: [API-post-search, API-query-data-source]
+    tools: [API-post-search, API-query-data-source, API-retrieve-page-markdown]
