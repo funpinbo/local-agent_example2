@@ -33,7 +33,7 @@ from common import config
 
 CONFIG = Path(__file__).with_name("servers.yaml")
 USER_META_KEY = "local.office/user"          # 그룹웨어 MCP 서버가 읽는 "누구 대신" 키
-_VAR = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
+_VAR = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}")   # ${이름} 또는 ${이름:-기본값}
 
 
 # ---------------------------------------------------------------- 설정
@@ -54,6 +54,8 @@ def _expand(v: Any, env: dict[str, str], missing: set[str]) -> Any:
     if isinstance(v, str):
         def sub(m: re.Match) -> str:
             if m.group(1) not in env or not env[m.group(1)]:
+                if m.group(2) is not None:          # ${이름:-기본값}
+                    return m.group(2)
                 missing.add(m.group(1))
                 return ""
             return env[m.group(1)]

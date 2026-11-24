@@ -84,12 +84,25 @@ def _name(uid: str) -> str:
     return next((f"{p['name']}({p['team']})" for p in _people() if p["id"] == uid), uid)
 
 
-def _to_id(who: str) -> str:
-    """아이디, 이름, '이름 직급' 모두 받는다."""
+def _to_id(who: str, me: str | None = None) -> str:
+    """아이디, 이름, '이름 직급', 그리고 '팀장님'·'본부장님' 같은 직급만으로도 받는다.
+    직급만 오면 부르는 사람(me)과 같은 팀에서 먼저 찾고, 없으면 회사 전체에서 그 직급이 한 명일 때만 받는다.
+    (실제 실행에서 "팀장님 결재선으로 올려 줘"라는 부탁이 사람을 못 찾아 막혔다.)"""
     w = who.strip()
-    for p in _people():
+    people = _people()
+    for p in people:
         if w in (p["id"], p["name"]) or w.startswith(p["name"]):
             return p["id"]
+    title = w.removesuffix("님").strip()
+    holders = [p for p in people if p["title"] == title]
+    if holders:
+        team = next((p["team"] for p in people if p["id"] == me), None)
+        same = [p for p in holders if p["team"] == team]
+        pick = same if len(same) == 1 else holders if len(holders) == 1 else []
+        if pick:
+            return pick[0]["id"]
+        names = ", ".join(f"{p['name']}({p['team']})" for p in holders)
+        raise ToolError(f"'{who}'에 해당하는 사람이 여러 명입니다: {names}. 이름으로 다시 부르세요.")
     raise ToolError(f"'{who}'에 해당하는 사람이 없습니다. people 도구로 찾아보세요.")
 
 
@@ -194,7 +207,7 @@ def people(query: str = "") -> str:
 @server.tool(annotations=WRITE)
 def send_mail(ctx: Context, to: list[str], subject: str, body: str, cc: list[str] | None = None) -> str:
     """메일을 보낸다. to/cc는 이름이나 아이디 목록."""
-    r = _post(ctx, "/mails", {"to": [_to_id(x) for x in to], "cc": [_to_id(x) for x in cc or []],
+    r = _post(ctx, "/mails", {"to": [_to_id(x, _user(ctx)) for x in to], "cc": [_to_id(x, _user(ctx)) for x in cc or []],
                               "subject": subject, "body": body})
     return _j({"sent": f"mail:{r['id']}"})
 
@@ -204,14 +217,14 @@ def create_event(ctx: Context, title: str, start: str, end: str, attendees: list
                  location: str = "", memo: str = "") -> str:
     """일정을 만든다. start/end=YYYY-MM-DDTHH:MM, attendees는 이름이나 아이디 목록."""
     r = _post(ctx, "/events", {"title": title, "start": start, "end": end, "location": location, "memo": memo,
-                               "attendees": [_to_id(x) for x in attendees or []]})
+                               "attendees": [_to_id(x, _user(ctx)) for x in attendees or []]})
     return _j({"created": f"event:{r['id']}"})
 
 
 @server.tool(annotations=WRITE)
 def submit_approval(ctx: Context, kind: str, title: str, body: str, line: list[str]) -> str:
-    """결재를 올린다. line=결재자 이름·아이디를 결재 순서대로."""
-    r = _post(ctx, "/approvals", {"kind": kind, "title": title, "body": body, "line": [_to_id(x) for x in line]})
+    """결재를 올린다. line=결재자를 결재 순서대로(이름·아이디, 또는 "팀장님"처럼 직급)."""
+    r = _post(ctx, "/approvals", {"kind": kind, "title": title, "body": body, "line": [_to_id(x, _user(ctx)) for x in line]})
     return _j({"submitted": f"approval:{r['id']}", "next": _name(r["next"])})
 
 

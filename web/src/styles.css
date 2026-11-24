@@ -386,3 +386,8 @@ pre.raw .fn { color: var(--accent); background: var(--accent-soft); border-radiu
 .step.approval::before { background: var(--warn); }
 .call.skillc { background: var(--ok-soft); color: var(--ok); }
 .step.skill::before, .step.skills::before { background: var(--ok); }
+
+/* 단계 계획 */
+.plan-steps { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.call.stepc { background: var(--warn-soft); color: var(--warn); }
+.step.plan::before, .step.step::before { background: var(--warn); }

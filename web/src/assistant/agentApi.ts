@@ -19,7 +19,7 @@ export type Stage = { stage: string; label: string; items: CatalogItem[] };
 export type Catalog = { stages: Stage[]; model: string; msdf_mode: string };
 
 export type Step = {
-  type: "start" | "ai" | "tool" | "state" | "msdf" | "human" | "interrupt" | "error" | "system" | "node" | "tools" | "llm_raw" | "parsed" | "mcp" | "mcp_status" | "approval" | "skills" | "skill";
+  type: "start" | "ai" | "tool" | "state" | "msdf" | "human" | "interrupt" | "error" | "system" | "node" | "tools" | "llm_raw" | "parsed" | "mcp" | "mcp_status" | "approval" | "skills" | "skill" | "plan" | "step";
   node: string;
   t?: number;
   agent?: string | null;
@@ -57,6 +57,10 @@ export type Step = {
   msg?: Record<string, unknown>;
   bytes?: number;
   servers?: McpServer[];
+  // 단계 계획 (서비스 보강)
+  plan_steps?: { tool: string; goal: string }[];
+  i?: number;
+  goal?: string;
   // Skill (5장)
   skills?: { name: string; description: string; allowed_tools: string[]; body_chars: number; path: string }[];
   allowed?: string[];

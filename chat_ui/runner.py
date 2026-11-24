@@ -143,7 +143,7 @@ ITEMS: list[Item] = [
          "4편. 비서 코드 안의 도구(그룹웨어 읽기 10개 + 문서 검색) + MCP 서버 도구(servers.yaml). "
          "모델이 본 프롬프트 원문, 쓴 글자, MCP JSON-RPC 메시지를 그대로 보여 준다.",
          options=[{"key": "stage", "label": "장별 상태 (블로그 재현용)",
-                   "choices": [["5", "5장 — MCP 4개 + Skill"], ["3", "3장 — MCP 4개(그룹웨어 서버 포함), Skill 없음"],
+                   "choices": [["5", "5장(서비스 기본) — MCP 4개 + Skill + 단계 계획 + 대화 이어가기"], ["3", "3장 — MCP 4개(그룹웨어 서버 포함), Skill 없음"],
                                ["2", "2장 — 비서 코드 도구 + 기성 MCP(time·filesystem·notion)"],
                                ["1", "1장 — 비서 코드 안의 도구만"]]}]),
     Item("chat_qa", "chat", "문서 질문 (챗봇)", None, "question",
@@ -380,6 +380,11 @@ def _user_name(user: str) -> str:
     return user
 
 
+# 대화 이어가기: 대화 id → 앞 턴들 [{"user", "assistant", "actions"}]. 서버가 꺼지면 사라진다(실습용).
+CONVERSATIONS: dict[str, list[dict]] = {}
+HISTORY_TURNS = 6
+
+
 def run_assistant(job: "Job", question: str) -> dict:
     from chat_ui.agent import assistant, runlog
 
@@ -387,7 +392,9 @@ def run_assistant(job: "Job", question: str) -> dict:
     llm = get_raw_llm()
     user = job.opts.get("user") or "jaehwi"
     user_name = _user_name(user)
-    logged = log.start(job.id, "assistant", user, question, getattr(llm, "model", "scripted"))
+    conversation = job.opts.get("conversation") or None
+    history = CONVERSATIONS.get(conversation, [])[-HISTORY_TURNS:] if conversation else []
+    logged = log.start(job.id, "assistant", user, question, getattr(llm, "model", "scripted"), conversation)
     if not logged and log.error:
         job.add({"type": "state", "node": "runlog", "state": {"경고": log.error}})
 
@@ -416,6 +423,7 @@ def run_assistant(job: "Job", question: str) -> dict:
     # 장별 상태: 1장 = MCP 없음, 2장 = 기성 MCP만(그룹웨어 서버 없이), 3장 = MCP 전부, 5장 = MCP 전부 + Skill
     stage = str(job.opts.get("stage") or "5")
     use_skills = job.opts.get("skills", "on" if stage == "5" else "off") == "on"
+    use_planner = job.opts.get("planner", "on" if stage == "5" else "off") == "on"
     exclude = {"groupware"} if stage == "2" else set()
     host = get_mcp_host() if stage != "1" else None
     job.add({"type": "state", "node": "setup", "state": {"장별 상태": f"{stage}장", "Skill": use_skills,
@@ -428,15 +436,22 @@ def run_assistant(job: "Job", question: str) -> dict:
             st = host.connect()              # 처음이면 여기서 서버들을 띄우고 tools/list를 받는다
             job.add({"type": "mcp_status", "node": "mcp", "servers": st})
         tl = assistant.tools(host, exclude_servers=exclude)
+        if history:
+            job.add({"type": "state", "node": "conversation",
+                     "state": {"대화": conversation, "앞 턴 수": len(history)}})
         r = assistant.run(question, llm, emit, tool_list=tl, host=host, approve=approve, user=user,
-                          user_name=user_name, use_skills=use_skills)
+                          user_name=user_name, use_skills=use_skills, use_planner=use_planner, history=history)
     except Exception:
         log.finish(job.id, "error")
         raise
     finally:
         if host is not None:
             host.remove_listener(emit)
+    r.answer = assistant.guard_write_claims(r.answer, job.events, tl)
     log.finish(job.id, "done", r.answer, r.stop_reason)
+    if conversation:
+        CONVERSATIONS.setdefault(conversation, []).append(
+            {"user": question, "assistant": r.answer, "actions": assistant.action_summaries(job.events)})
     return {"final_answer": r.answer, "stop_reason": r.stop_reason, "llm_calls": r.llm_calls, "tool_calls": r.tool_calls}
 
 

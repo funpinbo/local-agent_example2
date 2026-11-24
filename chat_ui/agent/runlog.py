@@ -51,9 +51,10 @@ class RunLog:
             log.warning("실행 기록 실패: %s", e)
             return False
 
-    def start(self, run_id: str, kind: str, user: str | None, text: str, model: str | None) -> bool:
-        return self._exec("INSERT INTO runs(id,kind,user_id,input,model) VALUES(%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
-                          (run_id, kind, user, text, model))
+    def start(self, run_id: str, kind: str, user: str | None, text: str, model: str | None,
+              conversation: str | None = None) -> bool:
+        return self._exec("INSERT INTO runs(id,kind,user_id,input,model,conversation_id) VALUES(%s,%s,%s,%s,%s,%s)"
+                          " ON CONFLICT (id) DO NOTHING", (run_id, kind, user, text, model, conversation))
 
     def event(self, run_id: str, ev: dict) -> None:
         """Tool Calling 층이 내는 이벤트(llm_raw, tool)를 행으로."""

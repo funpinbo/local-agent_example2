@@ -42,6 +42,10 @@ export function AssistantPanel({ wide, onToggleWide, onDataChanged }: { wide: bo
   const [showSettings, setShowSettings] = useState(false);
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  // 대화 이어가기: 같은 id로 보내면 서버가 앞 턴(질문·답·실행한 도구)을 이어서 본다
+  const newConversation = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
+  const [conversation, setConversation] = useState<string>(newConversation);
   const [files, setFiles] = useState<string[]>([]);
   const [uploadMsg, setUploadMsg] = useState("");
   const [mcp, setMcp] = useState<McpServer[] | null>(null);
@@ -114,7 +118,14 @@ export function AssistantPanel({ wide, onToggleWide, onDataChanged }: { wide: bo
     if (item.input === "question" && !text.trim()) return;
     const prompt = text.trim();
     try {
-      const v = await agentApi.run({ key: item.key, text: prompt, ...opts, use_uploads: true, user: dir.me.id });
+      const v = await agentApi.run({
+        key: item.key,
+        text: prompt,
+        ...opts,
+        use_uploads: true,
+        user: dir.me.id,
+        ...(item.key === "assistant" ? { conversation } : {}),
+      });
       setTurns((all) => [
         ...all,
         {
@@ -166,6 +177,18 @@ export function AssistantPanel({ wide, onToggleWide, onDataChanged }: { wide: bo
           <div className="muted small">{catalog ? `${catalog.model} · 로컬 · MSDF ${catalog.msdf_mode}` : "연결 확인 중"}</div>
         </div>
         <div className="head-btns">
+          <button
+            className="icon"
+            title="새 대화 — 앞의 대화를 잊고 새로 시작"
+            aria-label="새 대화"
+            disabled={busy}
+            onClick={() => {
+              setTurns([]);
+              setConversation(newConversation());
+            }}
+          >
+            ＋
+          </button>
           <button className="icon" onClick={onToggleWide} title={wide ? "좁게" : "넓게"} aria-label="패널 너비">
             {wide ? "⇥" : "⇤"}
           </button>

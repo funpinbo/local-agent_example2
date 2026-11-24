@@ -100,9 +100,12 @@ class RawKanana:
         self.options = {"temperature": temperature, "num_ctx": num_ctx, "num_predict": num_predict, "stop": STOP}
         self.top_logprobs = top_logprobs
 
-    def generate(self, prompt: str) -> LLMOutput:
+    def generate(self, prompt: str, format: dict | None = None) -> LLMOutput:
+        """format: JSON Schema를 주면 Ollama가 그 모양의 JSON만 쓰게 묶는다(계획 세우기에 쓴다)."""
         body = {"model": self.model, "prompt": prompt, "raw": True, "stream": False, "options": self.options,
                 "logprobs": True, "top_logprobs": self.top_logprobs}
+        if format is not None:
+            body["format"] = format
         t0 = time.perf_counter()
         r = httpx.post(f"{self.base_url}/api/generate", json=body, timeout=600)
         r.raise_for_status()
@@ -127,7 +130,7 @@ class ScriptedRaw:
     def __init__(self, outputs: list[str | Callable[[str], str]]):
         self.outputs, self.prompts = list(outputs), []
 
-    def generate(self, prompt: str) -> LLMOutput:
+    def generate(self, prompt: str, format: dict | None = None) -> LLMOutput:
         self.prompts.append(prompt)
         o = self.outputs.pop(0)
         text = o(prompt) if callable(o) else o
@@ -144,6 +147,15 @@ class LoopResult:
     messages: list[dict]
     llm_calls: int
     tool_calls: int
+
+
+def _near_miss(text: str, by_name: dict) -> str | None:
+    """정해진 형식(<function=이름>)은 아닌데, 아는 도구 이름 바로 뒤에 JSON 객체가 붙어 있으면 그 이름을 돌려준다."""
+    import re
+    for name in by_name:
+        if re.search(rf"[\[<`\s]?{re.escape(name)}\s*[>\]:(]?\s*\{{", text):
+            return name
+    return None
 
 
 Approver = Callable[[Tool, dict], tuple[str, dict, str]]
@@ -180,6 +192,17 @@ def run_loop(llm, messages: list[dict], tools: list[Tool] | Callable[[], list[To
               "ms": out.ms, "done_reason": out.done_reason, "first_token": out.first_token, "request": out.request})
         prev_prompt = prompt
         if not parsed.calls and not parsed.errors:
+            # 형식만 틀린 호출: 실제 실행에서 "[submit_approval>{…}</submit_approval>"처럼 쓰고는 "올렸습니다"라고 답했다.
+            # 아는 도구 이름 바로 뒤에 JSON이 오면 호출하려던 것으로 보고, 형식을 고치라는 오류를 돌려준다.
+            near = _near_miss(out.text, by_name)
+            if near and n_llm < max_llm_calls:
+                emit({"type": "parsed", "node": "parser", "calls": [], "errors": [f"{near}: 호출 형식이 틀림"],
+                      "text": parsed.text, "verdict": "형식이 틀린 호출 → 고쳐 부르라고 돌려줌"})
+                messages.append({"role": "assistant", "content": out.text.strip()})
+                messages.append({"role": "tool", "content":
+                                 f"오류: {near} 도구를 부르려 했지만 형식이 틀려 실행되지 않았습니다. "
+                                 f"<function={near}>{{인자 JSON}}</function> 형식으로 다시 부르세요. 실행되지 않았으니 했다고 답하면 안 됩니다."})
+                continue
             emit({"type": "parsed", "node": "parser", "calls": [], "errors": [], "text": parsed.text,
                   "verdict": "호출 없음 → 이 글이 답"})
             messages.append({"role": "assistant", "content": out.text})

@@ -131,7 +131,7 @@ def test_panel_send_mail_after_approval_over_http(gw_mcp_http, gw, tmp_path):
     try:
         with TestClient(create(connect_msdf=False)) as c:
             job = c.post("/chat/api/run", json={"key": "assistant", "text": "지영 팀장님께 회의 요청 메일 보내 줘",
-                                                "user": "haeun"}).json()
+                                                "user": "haeun", "stage": "3"}).json()
             v = wait(c, job["id"], until=("waiting", "done", "error"))
             assert v["status"] == "waiting", v["error"]
             it = v["interrupt"]
@@ -193,3 +193,17 @@ def test_stage_option_reproduces_chapter_tool_sets(gw_mcp_http, gw, tmp_path):
     assert srcs["2"] == {"local"}                                     # groupware 서버만 있는 테스트라 2장은 local만
     assert "mcp:groupware" in srcs["3"] and "gw_list_mails" not in seen["3"]
     assert "skill" in srcs["5"]
+
+
+def test_title_like_team_lead_resolves_within_my_team(gw):
+    r = json.loads(_call("submit_approval", {"kind": "출장신청", "title": "제주도 워크샵", "body": "-",
+                                             "line": ["팀장님"]}).content[0].text)
+    assert r["next"] == "박지영(AI플랫폼팀)"
+    r = json.loads(_call("submit_approval", {"kind": "구매품의", "title": "x", "body": "-",
+                                             "line": ["팀장님", "본부장님"]}).content[0].text)
+    assert r["next"] == "박지영(AI플랫폼팀)"
+    r = json.loads(_call("send_mail", {"to": ["책임님"], "subject": "x", "body": "y"}).content[0].text)
+    assert r["sent"].startswith("mail:")                                      # 내 팀의 책임은 이서준 한 명
+    r = _call("send_mail", {"to": ["책임님"], "subject": "x", "body": "y"},
+              meta={"local.office/user": "dongho"})                           # 기술본부에는 책임이 없고 회사에 여럿
+    assert r.is_error and "여러 명" in r.content[0].text

@@ -106,7 +106,7 @@ def test_panel_runs_assistant_with_raw_events(gw_env, temp_runlog):
         lambda p: "2호기가 OOM으로 재시작했습니다 [mail:6]." if "mail:6" in p else "모르겠습니다."]))
     try:
         with TestClient(create(connect_msdf=False)) as c:
-            job = c.post("/chat/api/run", json={"key": "assistant", "text": "10월에 OOM 난 적 있어?", "skills": "off"}).json()
+            job = c.post("/chat/api/run", json={"key": "assistant", "text": "10월에 OOM 난 적 있어?", "skills": "off", "planner": "off"}).json()
             v = wait(c, job["id"])
     finally:
         runner.set_raw_llm(None)

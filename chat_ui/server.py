@@ -37,6 +37,8 @@ class RunIn(BaseModel):
     cyclic: str | None = None
     skills: str | None = None           # 업무 비서: on | off (stage보다 우선)
     stage: str | None = None            # 업무 비서: 1 | 2 | 3 | 5 — 장별 도구 구성
+    planner: str | None = None          # 업무 비서: on | off (stage보다 우선) — 단계 계획 후 코드가 한 단계씩
+    conversation: str | None = None     # 업무 비서: 대화 id. 같은 id면 앞 턴을 이어서 본다
     memo_source: str | None = None
     sample_memo: str | None = None
     use_uploads: bool = True

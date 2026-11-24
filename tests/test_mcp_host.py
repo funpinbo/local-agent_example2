@@ -91,7 +91,7 @@ def test_panel_run_records_mcp_messages(host, gw_env, monkeypatch):
     runner.set_raw_llm(toolcall.ScriptedRaw(['<function=add>{"a": 40, "b": 2}</function>', "42입니다."]))
     try:
         with TestClient(create(connect_msdf=False)) as c:
-            job = c.post("/chat/api/run", json={"key": "assistant", "text": "40 더하기 2는?", "skills": "off"}).json()
+            job = c.post("/chat/api/run", json={"key": "assistant", "text": "40 더하기 2는?", "skills": "off", "planner": "off"}).json()
             v = wait(c, job["id"])
             status = c.get("/chat/api/mcp").json()
         assert v["status"] == "done", v["error"]

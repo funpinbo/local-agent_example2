@@ -48,3 +48,13 @@ def test_unknown_skill_is_an_error_for_the_model():
     session = skills.SkillSession(ALL, skills.load_all(), base=[])
     assert "없습니다" in session.loader.run({"name": "없는-스킬"})
     assert session.active is None
+
+
+def test_tool_name_given_to_load_skill_is_redirected():
+    """실제 실행: 모델이 load_skill("create_event")처럼 도구 이름을 넣었다 → 바로 부르라고 알려 준다."""
+    session = skills.SkillSession(ALL, skills.load_all(), base=["find_mails"])
+    msg = session.loader.run({"name": "find_mails"})
+    assert "Skill이 아니라 지금 바로 부를 수 있는 도구" in msg and "<function=find_mails>" in msg
+    assert session.active is None
+    assert "도구를 바로 부르세요" in session.loader.run({"name": "send_everything"})
+    assert "load_skill을 쓰지 말고" in skills.skill_rules(skills.load_all())

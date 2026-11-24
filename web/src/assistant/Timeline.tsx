@@ -116,6 +116,34 @@ function StepBody({ s }: { s: Step }) {
           </pre>
         </Fold>
       );
+    case "plan":
+      return (
+        <span>
+          <b>계획</b>{" "}
+          {(s.plan_steps ?? []).length === 0 ? (
+            <span className="muted">단계 없음 → 평소처럼 진행</span>
+          ) : (s.plan_steps ?? []).length === 1 ? (
+            <span className="muted">1단계 → 평소처럼 진행</span>
+          ) : (
+            <ol className="plan-steps">
+              {(s.plan_steps ?? []).map((st, i) => (
+                <li key={i}>
+                  <code>{st.tool}</code> {st.goal}
+                </li>
+              ))}
+            </ol>
+          )}
+        </span>
+      );
+    case "step":
+      return (
+        <span>
+          <span className="call stepc">
+            {s.i}/{s.n}단계
+          </span>{" "}
+          <code>{s.tool}</code> <span className="muted">{s.goal}</span>
+        </span>
+      );
     case "skill":
       return (
         <span>

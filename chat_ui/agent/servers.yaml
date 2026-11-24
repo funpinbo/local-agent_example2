@@ -9,7 +9,7 @@
 servers:
   groupware:                                 # 3장: 직접 만든 서버 (python -m chat_ui.mcp_servers.groupware)
     transport: http
-    url: http://127.0.0.1:8301/mcp
+    url: ${GROUPWARE_MCP_URL:-http://127.0.0.1:8301/mcp}
     headers:
       Authorization: "Bearer ${GROUPWARE_MCP_KEY}"     # 서비스 키 — 누가 부르나 (.env)
     pass_user: true                          # 요청마다 _meta["local.office/user"] = 지금 사용자 — 누구 대신 부르나
